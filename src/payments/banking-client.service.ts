@@ -1,13 +1,6 @@
-import {
-  BadGatewayException,
-  BadRequestException,
-  ForbiddenException,
-  HttpException,
-  Injectable,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { callService, HTTP_TIMEOUTS } from '../common/http/internal-http';
 
 export interface AccountInfo {
   id: string;
@@ -28,7 +21,7 @@ export interface MerchantAccount {
 /**
  * Llamadas servicio a servicio (red interna, INTERNAL_API_KEY propia de
  * payment-service): cuentas en account-service, pagos en ledger-service y
- * clave dinámica en auth-service.
+ * clave dinámica en auth-service. Errores: regla común de common/http/internal-http.ts.
  */
 @Injectable()
 export class BankingClientService {
@@ -36,37 +29,24 @@ export class BankingClientService {
 
   /** Datos de una cuenta (titular, tipo, estado y moneda) para validar el origen del pago. */
   async getAccount(accountId: string): Promise<AccountInfo> {
-    const baseUrl = this.config.get<string>('ACCOUNT_SERVICE_URL', 'http://localhost:3002');
-    let response: Response;
-    try {
-      response = await fetch(`${baseUrl}/internal/accounts/${encodeURIComponent(accountId)}/ledger-info`, {
-        headers: this.internalHeaders(),
-        signal: AbortSignal.timeout(10000),
-      });
-    } catch {
-      throw new ServiceUnavailableException('No se pudo contactar Account Service. Inténtalo de nuevo.');
-    }
-    if (response.status === 404) throw new NotFoundException('Cuenta de origen no encontrada.');
-    if (!response.ok) throw new ServiceUnavailableException(`Account Service respondió ${response.status}.`);
-    return response.json() as Promise<AccountInfo>;
+    return callService<AccountInfo>(
+      `${this.url('ACCOUNT_SERVICE_URL', 'http://localhost:3002')}/internal/accounts/${encodeURIComponent(accountId)}/ledger-info`,
+      { headers: this.internalHeaders(), timeoutMs: HTTP_TIMEOUTS.read, retry: true },
+      {
+        service: 'Account Service',
+        internal: true,
+        on: { 404: () => new NotFoundException('Cuenta de origen no encontrada.') },
+      },
+    );
   }
 
   /** Crea u obtiene la cuenta de comercio del convenio (idempotente por código). */
   async ensureMerchantAccount(code: string, name: string, currency: string): Promise<MerchantAccount> {
-    const baseUrl = this.config.get<string>('ACCOUNT_SERVICE_URL', 'http://localhost:3002');
-    let response: Response;
-    try {
-      response = await fetch(`${baseUrl}/internal/accounts/merchants`, {
-        method: 'POST',
-        headers: this.internalHeaders(),
-        body: JSON.stringify({ code, name, currency }),
-        signal: AbortSignal.timeout(10000),
-      });
-    } catch {
-      throw new ServiceUnavailableException('No se pudo contactar Account Service.');
-    }
-    if (!response.ok) throw new ServiceUnavailableException(`Account Service respondió ${response.status}.`);
-    return response.json() as Promise<MerchantAccount>;
+    return callService<MerchantAccount>(
+      `${this.url('ACCOUNT_SERVICE_URL', 'http://localhost:3002')}/internal/accounts/merchants`,
+      { method: 'POST', headers: this.internalHeaders(), body: JSON.stringify({ code, name, currency }) },
+      { service: 'Account Service', internal: true },
+    );
   }
 
   /**
@@ -81,28 +61,20 @@ export class BankingClientService {
     idempotencyKey: string;
     description: string;
   }): Promise<{ id?: string }> {
-    const baseUrl = this.config.get<string>('LEDGER_SERVICE_URL', 'http://localhost:3006');
-    let response: Response;
-    try {
-      response = await fetch(`${baseUrl}/ledger/internal/payments`, {
+    return callService<{ id?: string }>(
+      `${this.url('LEDGER_SERVICE_URL', 'http://localhost:3006')}/ledger/internal/payments`,
+      {
         method: 'POST',
         headers: this.internalHeaders(),
         body: JSON.stringify(params),
-        signal: AbortSignal.timeout(15000),
-      });
-    } catch {
-      throw new ServiceUnavailableException('No se pudo contactar Ledger Service. Puedes reintentar la confirmación.');
-    }
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message = Array.isArray(payload?.message)
-        ? payload.message.join(', ')
-        : payload?.message || 'Ledger Service rechazó el pago.';
-      if (response.status >= 500) throw new BadGatewayException(message);
-      throw new HttpException(message, response.status);
-    }
-    return payload;
+        timeoutMs: HTTP_TIMEOUTS.slow,
+      },
+      {
+        service: 'Ledger Service',
+        internal: true,
+        unavailable: 'No se pudo completar el pago en este momento. Puedes reintentar la confirmación.',
+      },
+    );
   }
 
   /**
@@ -116,10 +88,9 @@ export class BankingClientService {
     idempotencyKey: string;
     description: string;
   }): Promise<{ id?: string }> {
-    const baseUrl = this.config.get<string>('LEDGER_SERVICE_URL', 'http://localhost:3006');
-    let response: Response;
-    try {
-      response = await fetch(`${baseUrl}/ledger/internal/rewards`, {
+    return callService<{ id?: string }>(
+      `${this.url('LEDGER_SERVICE_URL', 'http://localhost:3006')}/ledger/internal/rewards`,
+      {
         method: 'POST',
         headers: this.internalHeaders(),
         body: JSON.stringify({
@@ -130,46 +101,30 @@ export class BankingClientService {
           idempotencyKey: params.idempotencyKey,
           description: params.description,
         }),
-        signal: AbortSignal.timeout(15000),
-      });
-    } catch {
-      throw new ServiceUnavailableException('No se pudo contactar Ledger Service.');
-    }
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message = Array.isArray(payload?.message)
-        ? payload.message.join(', ')
-        : payload?.message || 'Ledger Service rechazó el pago.';
-      if (response.status >= 500) throw new BadGatewayException(message);
-      throw new HttpException(message, response.status);
-    }
-    return payload;
+        timeoutMs: HTTP_TIMEOUTS.slow,
+      },
+      { service: 'Ledger Service', internal: true },
+    );
   }
 
   /** Valida la clave dinámica con Auth Service. */
   async verifyDynamicKey(userId: string, code: string): Promise<void> {
-    const baseUrl = this.config.get<string>('AUTH_SERVICE_URL', 'http://localhost:3001');
-    let response: Response;
-    try {
-      response = await fetch(`${baseUrl}/internal/dynamic-key/verify`, {
-        method: 'POST',
-        headers: this.internalHeaders(),
-        body: JSON.stringify({ idUser: userId, code }),
-        signal: AbortSignal.timeout(10000),
-      });
-    } catch {
-      throw new ServiceUnavailableException('No se pudo validar la clave dinámica. Inténtalo de nuevo.');
-    }
-
-    const payload = await response.json().catch(() => ({}));
-    if (response.status === 403 && /clave dinámica/i.test(payload?.message || '')) {
-      throw new ForbiddenException(payload.message);
-    }
-    if (!response.ok)
-      throw new ServiceUnavailableException('No se pudo validar la clave dinámica. Inténtalo de nuevo.');
+    const payload = await callService<{ valid?: boolean; message?: string }>(
+      `${this.url('AUTH_SERVICE_URL', 'http://localhost:3001')}/internal/dynamic-key/verify`,
+      { method: 'POST', headers: this.internalHeaders(), body: JSON.stringify({ idUser: userId, code }) },
+      {
+        service: 'Auth Service',
+        internal: true,
+        unavailable: 'No se pudo validar la clave dinámica. Inténtalo de nuevo.',
+      },
+    );
     if (payload?.valid !== true) {
       throw new BadRequestException(payload?.message || 'Clave dinámica incorrecta o vencida.');
     }
+  }
+
+  private url(key: string, fallback: string) {
+    return this.config.get<string>(key, fallback).replace(/\/+$/, '');
   }
 
   private internalHeaders() {
