@@ -149,7 +149,17 @@ todas se configuran como variables del servicio, nunca en el código.
 
 ## Pruebas
 
-Las reglas de negocio se prueban de punta a punta con los scripts de `scripts/pruebas/` del repositorio principal.
+Pruebas de reglas de negocio (Jest): una factura se paga una sola vez por periodo (también con dos pagos simultáneos), monto fijado por la factura, clave dinámica, reintento con la misma clave, rango de recargas y recargas con puntos (cancelada solo si el ledger la rechaza).
+
+Corren contra un PostgreSQL real, porque esas reglas dependen de transacciones,
+bloqueos e índices únicos. Cada corrida crea una base temporal y la borra al terminar:
+
+```bash
+TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres npm test
+```
+
+Sin `TEST_DATABASE_URL` se omiten en local; en la CI son obligatorias (el workflow
+levanta un Postgres de servicio).
 
 ## Despliegue
 
