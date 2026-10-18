@@ -155,7 +155,7 @@ export class PaymentsService {
     const reference = this.validReference(item, rawReference);
     const existing = await this.savedBills.findOne({ where: { userId, billerCode: item.code, reference } });
     if (!existing) {
-      if (await this.savedBills.count({ where: { userId } }) >= MAX_SAVED_BILLS) {
+      if ((await this.savedBills.count({ where: { userId } })) >= MAX_SAVED_BILLS) {
         throw new BadRequestException(`Puedes inscribir hasta ${MAX_SAVED_BILLS} facturas.`);
       }
       try {
@@ -190,15 +190,18 @@ export class PaymentsService {
       throw new ServiceUnavailableException(`${item.name} todavía no está disponible. Inténtalo en unos minutos.`);
     }
     // En QR la referencia es el número de cuenta del comercio que traía el código.
-    const reference = item.kind === 'qr' ? this.qrReference(biller, dto.reference) : this.validReference(item, dto.reference);
+    const reference =
+      item.kind === 'qr' ? this.qrReference(biller, dto.reference) : this.validReference(item, dto.reference);
 
     // La cuenta de origen debe ser del usuario de la sesión (el ledger interno no lo valida).
     const account = await this.banking.getAccount(dto.sourceAccountId);
     if (account.idUser !== userId || account.accountType === 'merchant') {
       throw new ForbiddenException('La cuenta de origen no te pertenece.');
     }
-    if (account.status !== 'active') throw new BadRequestException('Tu cuenta no está activa, por eso no puedes pagar.');
-    if (account.currency !== biller.currency) throw new BadRequestException('La cuenta y el convenio deben usar la misma moneda.');
+    if (account.status !== 'active')
+      throw new BadRequestException('Tu cuenta no está activa, por eso no puedes pagar.');
+    if (account.currency !== biller.currency)
+      throw new BadRequestException('La cuenta y el convenio deben usar la misma moneda.');
 
     let fields: Pick<PaymentRequest, 'amount' | 'period' | 'dueDate' | 'topupType' | 'description'>;
     if (item.kind === 'bill') {
@@ -292,14 +295,14 @@ export class PaymentsService {
         .update(PaymentRequest)
         .set({ status: 'processing' })
         .where('id = :id AND user_id = :userId', { id, userId })
-        .andWhere(
-          "(status = 'pending' OR (status = 'processing' AND updated_at < :stale))",
-          { stale: new Date(Date.now() - STALE_PROCESSING_MS) },
-        )
+        .andWhere("(status = 'pending' OR (status = 'processing' AND updated_at < :stale))", {
+          stale: new Date(Date.now() - STALE_PROCESSING_MS),
+        })
         .execute();
       affected = claim.affected;
     } catch (error) {
-      if ((error as any)?.code === '23505') throw new ConflictException('Esta factura ya fue pagada o se está pagando.');
+      if ((error as any)?.code === '23505')
+        throw new ConflictException('Esta factura ya fue pagada o se está pagando.');
       throw error;
     }
     if (affected !== 1) {
@@ -335,7 +338,12 @@ export class PaymentsService {
   async rewardTopup(dto: RewardTopupDto) {
     const existing = await this.requests.findOne({ where: { idempotencyKey: dto.idempotencyKey } });
     if (existing?.status === 'completed') return this.publicRequest(existing);
-    if (existing && (existing.userId !== dto.beneficiaryUserId || existing.reference !== dto.phone || Number(existing.amount) !== dto.amount)) {
+    if (
+      existing &&
+      (existing.userId !== dto.beneficiaryUserId ||
+        existing.reference !== dto.phone ||
+        Number(existing.amount) !== dto.amount)
+    ) {
       throw new ConflictException('La clave de idempotencia ya se usó para otra recarga.');
     }
 
@@ -415,7 +423,8 @@ export class PaymentsService {
 
   private qrReference(biller: Biller, raw: string): string {
     const reference = normalizeReference(raw);
-    if (reference !== biller.accountNumber) throw new BadRequestException('El código QR no corresponde a ese comercio.');
+    if (reference !== biller.accountNumber)
+      throw new BadRequestException('El código QR no corresponde a ese comercio.');
     return reference;
   }
 

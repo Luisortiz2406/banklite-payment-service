@@ -42,7 +42,9 @@ export class BillersService implements OnApplicationBootstrap, OnModuleDestroy {
         const account = await this.banking.ensureMerchantAccount(biller.code, biller.name, biller.currency);
         await this.billers.update(biller.code, { accountId: account.id, accountNumber: account.accountNumber });
       } catch (error) {
-        this.logger.warn(`Cuenta del convenio ${biller.code} pendiente: ${(error as Error).message}. Reintento en 30 s.`);
+        this.logger.warn(
+          `Cuenta del convenio ${biller.code} pendiente: ${(error as Error).message}. Reintento en 30 s.`,
+        );
         this.timer = setTimeout(() => void this.ensureAccounts(), RETRY_MS);
         return false;
       }

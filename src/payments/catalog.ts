@@ -36,10 +36,26 @@ export const PAY_SERVICES: PayService[] = [
   { key: 'admin', name: 'Administración', minAmount: 150_000, maxAmount: 450_000 },
 ];
 
-const bill = (code: string, name: string, service: string): CatalogItem => ({ code: `fac-${code}`, name, kind: 'bill', service });
-const topup = (code: string, name: string): CatalogItem => ({ code: `rec-${code}`, name, kind: 'topup', service: null });
-const store = (code: string, name: string, qrAmount: number, qrNote: string): CatalogItem =>
-  ({ code: `qr-${code}`, name, kind: 'qr', service: null, qrAmount, qrNote });
+const bill = (code: string, name: string, service: string): CatalogItem => ({
+  code: `fac-${code}`,
+  name,
+  kind: 'bill',
+  service,
+});
+const topup = (code: string, name: string): CatalogItem => ({
+  code: `rec-${code}`,
+  name,
+  kind: 'topup',
+  service: null,
+});
+const store = (code: string, name: string, qrAmount: number, qrNote: string): CatalogItem => ({
+  code: `qr-${code}`,
+  name,
+  kind: 'qr',
+  service: null,
+  qrAmount,
+  qrNote,
+});
 
 export const BILLER_CATALOG: CatalogItem[] = [
   bill('acueducto', 'Acueducto de Bogotá', 'agua'),
