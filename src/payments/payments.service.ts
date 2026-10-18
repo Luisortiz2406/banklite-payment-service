@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
@@ -42,6 +43,12 @@ const STALE_PROCESSING_MS = 60_000;
 // Cuenta de sistema "Recompensas" del ledger (COP): origen de las recargas que el
 // banco paga cuando alguien canjea Puntos Banklite.
 const REWARDS_ACCOUNT_COP = '00000000-0000-4000-8000-000000000007';
+
+/** Rechazo definitivo de otro servicio (4xx): la operación seguro no se hizo. */
+function isRejection(error: unknown): boolean {
+  const status = error instanceof HttpException ? error.getStatus() : 0;
+  return status >= 400 && status < 500;
+}
 
 @Injectable()
 export class PaymentsService {
@@ -335,10 +342,14 @@ export class PaymentsService {
    * El banco le paga al operador desde "Recompensas" con un solo asiento en el
    * ledger; queda registrada como recarga del cliente (sus "Últimas recargas").
    * Idempotente: con la misma clave nunca se paga dos veces.
+   *
+   * Si el ledger la rechaza (4xx) queda cancelada y rewards-service devuelve los
+   * puntos; por eso una recarga cancelada no se vuelve a pagar con la misma clave.
+   * Si la falla es incierta (red, 5xx) el ledger pudo haberla pagado: queda en
+   * 'processing' y rewards-service reintenta con la misma clave.
    */
   async rewardTopup(dto: RewardTopupDto) {
     const existing = await this.requests.findOne({ where: { idempotencyKey: dto.idempotencyKey } });
-    if (existing?.status === 'completed') return this.publicRequest(existing);
     if (
       existing &&
       (existing.userId !== dto.beneficiaryUserId ||
@@ -346,6 +357,10 @@ export class PaymentsService {
         Number(existing.amount) !== dto.amount)
     ) {
       throw new ConflictException('La clave de idempotencia ya se usó para otra recarga.');
+    }
+    if (existing?.status === 'completed') return this.publicRequest(existing);
+    if (existing?.status === 'cancelled') {
+      throw new ConflictException('Esta recarga fue rechazada y no se vuelve a pagar.');
     }
 
     const item = this.requireItem(dto.billerCode, 'topup');
@@ -376,6 +391,9 @@ export class PaymentsService {
         if ((error as any)?.code !== '23505') throw error;
         request = await this.requests.findOne({ where: { idempotencyKey: dto.idempotencyKey } });
         if (request?.status === 'completed') return this.publicRequest(request);
+        if (request?.status === 'cancelled') {
+          throw new ConflictException('Esta recarga fue rechazada y no se vuelve a pagar.');
+        }
       }
     }
 
@@ -392,8 +410,10 @@ export class PaymentsService {
       await this.requests.save(request);
       return this.publicRequest(request, biller);
     } catch (error) {
-      // No se pagó: la recarga queda cancelada y rewards-service devuelve los puntos.
-      await this.requests.update({ id: request.id, status: 'processing' }, { status: 'cancelled' });
+      // Solo un rechazo del ledger asegura que no se pagó; lo demás queda en 'processing'.
+      if (isRejection(error)) {
+        await this.requests.update({ id: request.id, status: 'processing' }, { status: 'cancelled' });
+      }
       throw error;
     }
   }
