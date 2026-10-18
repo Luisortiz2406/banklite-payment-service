@@ -126,3 +126,8 @@ export function payService(key: string | null): PayService | undefined {
 export function normalizeReference(value: string): string {
   return String(value ?? '').replace(/\s+/g, '');
 }
+
+/** Topes de recargas que muestran el frontend y Banki (GET /payments/catalog, público). */
+export function paymentsCatalog() {
+  return { topup: { min: TOPUP_MIN, max: TOPUP_MAX, types: TOPUP_TYPES } };
+}

@@ -15,11 +15,12 @@ import {
   BILL_REFERENCE,
   BILLER_CATALOG,
   BillerKind,
-  CatalogItem,
   catalogItem,
+  CatalogItem,
   MAX_SAVED_BILLS,
   normalizeReference,
   PAY_SERVICES,
+  paymentsCatalog,
   payService,
   PHONE,
   QR_MAX,
@@ -66,7 +67,7 @@ export class PaymentsService {
         service: item.service,
         available: !!accounts.get(item.code)?.accountId,
       })),
-      topup: { min: TOPUP_MIN, max: TOPUP_MAX, types: TOPUP_TYPES },
+      ...paymentsCatalog(),
     };
   }
 

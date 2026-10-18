@@ -9,12 +9,13 @@ import { BillersService } from './billers.service';
 import { Biller } from './entities/biller.entity';
 import { PaymentRequest } from './entities/payment-request.entity';
 import { SavedBill } from './entities/saved-bill.entity';
+import { PaymentsCatalogController } from './payments-catalog.controller';
 import { InternalPaymentsController, PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 
 @Module({
   imports: [ConfigModule, JwtModule.register({}), TypeOrmModule.forFeature([PaymentRequest, Biller, SavedBill])],
-  controllers: [PaymentsController, InternalPaymentsController],
+  controllers: [PaymentsCatalogController, PaymentsController, InternalPaymentsController],
   providers: [PaymentsService, BillersService, BankingClientService, JwtAuthGuard, InternalKeyGuard],
 })
 export class PaymentsModule {}
