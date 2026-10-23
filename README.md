@@ -1,5 +1,7 @@
 # Payment Service (`payment-service`)
 
+[![CI](https://github.com/Luisortiz2406/banklite-payment-service/actions/workflows/ci.yml/badge.svg)](https://github.com/Luisortiz2406/banklite-payment-service/actions/workflows/ci.yml)
+
 Pagos del cliente: facturas de servicios (de demostración), recargas de celular, facturas inscritas y pagos QR a comercios.
 
 Parte de **BankLite**, banco digital académico construido con microservicios. Cada
@@ -163,11 +165,26 @@ levanta un Postgres de servicio).
 
 ## Despliegue
 
-Desplegado en Railway (raíz del servicio: esta carpeta, `railway.json` con
-`healthcheckPath: /health`). El servicio no tiene dominio público propio: se accede
+Desplegado en Railway **desde este repositorio** (rama `main`): `railway.json` en la
+raíz define el build por `Dockerfile` y el health check en `/health`; cada push a
+`main` redespliega el servicio. El servicio no tiene dominio público propio: se accede
 por el gateway.
 
-- Estado del servicio y de su base: https://api-gateway-production-dd7f.up.railway.app/health (entrada `payment-service`: `status` y `database` deben estar en `ok`)
+- Estado del servicio y de su base: [https://api-gateway-production-dd7f.up.railway.app/health](https://api-gateway-production-dd7f.up.railway.app/health) (entrada `payment-service`: `status` y `database` deben estar en `ok`)
 - Endpoint público de prueba: https://api-gateway-production-dd7f.up.railway.app/payments/catalog
 - Rutas de este servicio: `https://api-gateway-production-dd7f.up.railway.app/payments/...`
 - Aplicación web: https://frontend-production-eff3c.up.railway.app
+
+## Repositorios relacionados
+
+Servicios de BankLite con los que se comunica este. **Llama a** / **Lo llama**: HTTP
+por la red interna; **Recibe** / **Envía**: eventos en RabbitMQ. Cada uno vive y se
+despliega desde su propio repositorio.
+
+| Repositorio | Relación con este servicio |
+|---|---|
+| [banklite-api-gateway](https://github.com/Luisortiz2406/banklite-api-gateway) | **Lo llama:** punto de entrada público, le enruta las rutas de este servicio |
+| [banklite-account-service](https://github.com/Luisortiz2406/banklite-account-service) | **Llama a:** cuenta origen y cuenta del convenio |
+| [banklite-ledger-service](https://github.com/Luisortiz2406/banklite-ledger-service) | **Llama a:** pagos, recargas y canjes |
+| [banklite-auth-service](https://github.com/Luisortiz2406/banklite-auth-service) | **Llama a:** verificación de la clave dinámica |
+| [banklite-rewards-service](https://github.com/Luisortiz2406/banklite-rewards-service) | **Lo llama:** recargas pagadas con puntos (`/internal/payments/reward-topups`) |
