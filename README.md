@@ -1,6 +1,6 @@
 # Payment Service (`payment-service`)
 
-[![CI](https://github.com/Luisortiz2406/banklite-payment-service/actions/workflows/ci.yml/badge.svg)](https://github.com/Luisortiz2406/banklite-payment-service/actions/workflows/ci.yml)
+[![Despliegue](https://github.com/Luisortiz2406/banklite-payment-service/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/Luisortiz2406/banklite-payment-service/actions/workflows/deploy.yml)
 
 Pagos del cliente: facturas de servicios (de demostración), recargas de celular, facturas inscritas y pagos QR a comercios.
 
@@ -165,9 +165,19 @@ levanta un Postgres de servicio).
 
 ## Despliegue
 
-Desplegado en Railway **desde este repositorio** (rama `main`): `railway.json` en la
-raíz define el build por `Dockerfile` y el health check en `/health`; cada push a
-`main` redespliega el servicio. El servicio no tiene dominio público propio: se accede
+Lo despliega **GitHub Actions** (`.github/workflows/deploy.yml`, que usa el workflow
+reutilizable de [banklite-pipelines](https://github.com/Luisortiz2406/banklite-pipelines)):
+
+1. **test**: lint, formato, build y pruebas con Postgres (también en cada pull request).
+2. **docker** (solo `main`): imagen en GHCR `ghcr.io/luisortiz2406/banklite-payment-service`,
+   etiquetada con el SHA del commit y `latest` (se guardan las últimas 5).
+3. **deploy** (solo `main`): `railway up --ci` sube el commit a Railway, que lo
+   construye con el `Dockerfile` y aplica `railway.json` (health check en `/health`);
+   el job espera a que el despliegue quede activo.
+
+El repositorio está desconectado del autodeploy de Railway: un push a `main` despliega
+solo a través de este pipeline, y únicamente si las pruebas pasan. Rollback: panel de
+Railway → *Deployments* → versión anterior → *Rollback*. El servicio no tiene dominio público propio: se accede
 por el gateway.
 
 - Estado del servicio y de su base: [https://api-gateway-production-dd7f.up.railway.app/health](https://api-gateway-production-dd7f.up.railway.app/health) (entrada `payment-service`: `status` y `database` deben estar en `ok`)
