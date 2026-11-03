@@ -147,6 +147,22 @@ describeWithDb('PaymentsService (PostgreSQL)', () => {
     });
   });
 
+  describe('nombres antiguos (marcas reales)', () => {
+    it('una solicitud preparada antes del cambio se muestra y llega al ledger con el nombre nuevo', async () => {
+      const prepared = await prepareBill();
+      await requests.update(prepared.id, { description: 'Agua · Acueducto de Bogotá · Ref. 12345678' });
+
+      const paid = await payments.confirm(prepared.id, ANA, DYNAMIC_KEY);
+      expect(paid.description).toBe('Agua · Aguas Demo Sabana · Ref. 12345678');
+      expect(paid.billerName).toBe('Aguas Demo Sabana');
+      expect(banking.pay).toHaveBeenCalledWith(
+        expect.objectContaining({ description: 'Agua · Aguas Demo Sabana · Ref. 12345678' }),
+      );
+      // La base no se reescribe.
+      expect((await requests.findOneBy({ id: prepared.id }))!.description).toContain('Acueducto de Bogotá');
+    });
+  });
+
   describe('confirmación', () => {
     it('sin clave dinámica válida no se mueve dinero', async () => {
       const prepared = await prepareBill();

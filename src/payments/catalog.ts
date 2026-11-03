@@ -1,5 +1,8 @@
 /**
- * Convenios de pago (facturas) y operadores de recarga. Cada empresa tiene una
+ * Convenios de pago (facturas) y operadores de recarga. Los nombres son
+ * inventados ("Demo"): Banklite es un proyecto académico y no usa marcas reales.
+ * Los códigos (fac-claro-hogar, rec-tigo, ...) no cambian: los usan las facturas
+ * inscritas, las solicitudes guardadas y las cuentas de comercio. Cada empresa tiene una
  * cuenta de comercio real en BankLite (account-service, accountType 'merchant')
  * a la que llega el dinero por el ledger. Los códigos llevan prefijo para no
  * chocar con los comercios de suscripciones de card-service (mismo espacio de
@@ -58,45 +61,90 @@ const store = (code: string, name: string, qrAmount: number, qrNote: string): Ca
 });
 
 export const BILLER_CATALOG: CatalogItem[] = [
-  bill('acueducto', 'Acueducto de Bogotá', 'agua'),
-  bill('epm-aguas', 'EPM Aguas', 'agua'),
-  bill('aguas-cartagena', 'Aguas de Cartagena', 'agua'),
-  bill('emcali', 'Emcali', 'agua'),
-  bill('aqualia', 'Aqualia', 'agua'),
-  bill('veolia', 'Veolia', 'agua'),
-  bill('enel', 'Enel Colombia', 'energia'),
-  bill('epm-energia', 'EPM Energía', 'energia'),
-  bill('air-e', 'Air-e', 'energia'),
-  bill('celsia', 'Celsia', 'energia'),
-  bill('afinia', 'Afinia', 'energia'),
-  bill('vanti', 'Vanti', 'gas'),
-  bill('epm-gas', 'EPM Gas', 'gas'),
-  bill('gases-occidente', 'Gases de Occidente', 'gas'),
-  bill('surtigas', 'Surtigas', 'gas'),
-  bill('gases-caribe', 'Gases del Caribe', 'gas'),
-  bill('claro-hogar', 'Claro Hogar', 'internet'),
-  bill('movistar-fibra', 'Movistar Fibra', 'internet'),
-  bill('tigo-hogar', 'Tigo Hogar', 'internet'),
-  bill('etb', 'ETB', 'internet'),
-  bill('tel-claro', 'Claro', 'telefonia'),
-  bill('tel-movistar', 'Movistar', 'telefonia'),
-  bill('tel-tigo', 'Tigo', 'telefonia'),
-  bill('tel-wom', 'WOM', 'telefonia'),
-  bill('directv', 'DirecTV', 'tv'),
-  bill('claro-tv', 'Claro TV', 'tv'),
-  bill('tigo-tv', 'Tigo TV', 'tv'),
+  bill('acueducto', 'Aguas Demo Sabana', 'agua'),
+  bill('epm-aguas', 'Aguas Demo Montaña', 'agua'),
+  bill('aguas-cartagena', 'Aguas Demo Bahía', 'agua'),
+  bill('emcali', 'Aguas Demo Valle', 'agua'),
+  bill('aqualia', 'Aguas Demo Río', 'agua'),
+  bill('veolia', 'Aguas Demo Manantial', 'agua'),
+  bill('enel', 'Energía Demo Sabana', 'energia'),
+  bill('epm-energia', 'Energía Demo Montaña', 'energia'),
+  bill('air-e', 'Energía Demo Brisa', 'energia'),
+  bill('celsia', 'Energía Demo Valle', 'energia'),
+  bill('afinia', 'Energía Demo Costa', 'energia'),
+  bill('vanti', 'Gas Demo Sabana', 'gas'),
+  bill('epm-gas', 'Gas Demo Montaña', 'gas'),
+  bill('gases-occidente', 'Gas Demo Valle', 'gas'),
+  bill('surtigas', 'Gas Demo Bahía', 'gas'),
+  bill('gases-caribe', 'Gas Demo Costa', 'gas'),
+  bill('claro-hogar', 'Internet Demo Colibrí', 'internet'),
+  bill('movistar-fibra', 'Internet Demo Tucán', 'internet'),
+  bill('tigo-hogar', 'Internet Demo Guacamaya', 'internet'),
+  bill('etb', 'Internet Demo Cóndor', 'internet'),
+  bill('tel-claro', 'Móvil Demo Colibrí', 'telefonia'),
+  bill('tel-movistar', 'Móvil Demo Tucán', 'telefonia'),
+  bill('tel-tigo', 'Móvil Demo Guacamaya', 'telefonia'),
+  bill('tel-wom', 'Móvil Demo Toche', 'telefonia'),
+  bill('directv', 'TV Demo Satélite', 'tv'),
+  bill('claro-tv', 'TV Demo Colibrí', 'tv'),
+  bill('tigo-tv', 'TV Demo Guacamaya', 'tv'),
   bill('administracion', 'Administración de conjunto', 'admin'),
-  topup('claro', 'Claro'),
-  topup('movistar', 'Movistar'),
-  topup('tigo', 'Tigo'),
-  topup('wom', 'WOM'),
-  topup('virgin', 'Virgin Mobile'),
+  topup('claro', 'Móvil Demo Colibrí'),
+  topup('movistar', 'Móvil Demo Tucán'),
+  topup('tigo', 'Móvil Demo Guacamaya'),
+  topup('wom', 'Móvil Demo Toche'),
+  topup('virgin', 'Móvil Demo Turpial'),
   // Comercios de prueba para pagar con QR (cuentas de comercio reales en BankLite).
   store('cafe-la-esquina', 'Café La Esquina', 8_500, 'Café y pandebono'),
   store('el-trigal', 'Panadería El Trigal', 12_300, 'Pan y leche'),
   store('tienda-don-pepe', 'Tienda Don Pepe', 0, ''),
   store('taxi-wmx482', 'Taxi · Placa WMX 482', 0, 'Carrera de taxi'),
 ];
+
+// Nombres que se usaron antes (marcas reales). Las solicitudes viejas los tienen
+// en description ("Agua · Acueducto de Bogotá · Ref. …"): al mostrarlas se
+// traducen al nombre nuevo. La base no se reescribe.
+const LEGACY_NAMES: Readonly<Record<string, string>> = {
+  'Acueducto de Bogotá': 'Aguas Demo Sabana',
+  'EPM Aguas': 'Aguas Demo Montaña',
+  'Aguas de Cartagena': 'Aguas Demo Bahía',
+  Emcali: 'Aguas Demo Valle',
+  Aqualia: 'Aguas Demo Río',
+  Veolia: 'Aguas Demo Manantial',
+  'Enel Colombia': 'Energía Demo Sabana',
+  'EPM Energía': 'Energía Demo Montaña',
+  'Air-e': 'Energía Demo Brisa',
+  Celsia: 'Energía Demo Valle',
+  Afinia: 'Energía Demo Costa',
+  Vanti: 'Gas Demo Sabana',
+  'EPM Gas': 'Gas Demo Montaña',
+  'Gases de Occidente': 'Gas Demo Valle',
+  Surtigas: 'Gas Demo Bahía',
+  'Gases del Caribe': 'Gas Demo Costa',
+  'Claro Hogar': 'Internet Demo Colibrí',
+  'Movistar Fibra': 'Internet Demo Tucán',
+  'Tigo Hogar': 'Internet Demo Guacamaya',
+  ETB: 'Internet Demo Cóndor',
+  Claro: 'Móvil Demo Colibrí',
+  Movistar: 'Móvil Demo Tucán',
+  Tigo: 'Móvil Demo Guacamaya',
+  WOM: 'Móvil Demo Toche',
+  'Virgin Mobile': 'Móvil Demo Turpial',
+  DirecTV: 'TV Demo Satélite',
+  'Claro TV': 'TV Demo Colibrí',
+  'Tigo TV': 'TV Demo Guacamaya',
+};
+
+/**
+ * Descripción con los nombres vigentes. Solo se miran los dos primeros tramos
+ * (separados por " · "), que es donde va la empresa en facturas, recargas y
+ * canjes; la nota que escribe el cliente en un pago QR va después y no se toca.
+ */
+export function currentDescription(description: string): string {
+  const parts = description.split(' · ');
+  for (let i = 0; i < Math.min(2, parts.length); i++) parts[i] = LEGACY_NAMES[parts[i]] ?? parts[i];
+  return parts.join(' · ');
+}
 
 // Número de contrato o referencia de la factura y celular de la recarga.
 export const BILL_REFERENCE = /^\d{6,14}$/;

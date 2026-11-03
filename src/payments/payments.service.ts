@@ -18,6 +18,7 @@ import {
   BillerKind,
   catalogItem,
   CatalogItem,
+  currentDescription,
   MAX_SAVED_BILLS,
   normalizeReference,
   PAY_SERVICES,
@@ -325,7 +326,8 @@ export class PaymentsService {
         merchantAccountId: biller.accountId,
         amount: Number(request.amount),
         idempotencyKey: request.idempotencyKey,
-        description: request.description,
+        // Una solicitud preparada antes del cambio de nombres llega al ledger con el nombre nuevo.
+        description: currentDescription(request.description),
       });
       request.status = 'completed';
       request.ledgerTransactionId = transaction.id ?? null;
@@ -502,7 +504,7 @@ export class PaymentsService {
       sourceAccountId: request.sourceAccountId,
       amount: Number(request.amount),
       currency: request.currency,
-      description: request.description,
+      description: currentDescription(request.description),
       status: request.status,
       ledgerTransactionId: request.ledgerTransactionId,
       createdAt: request.createdAt,
