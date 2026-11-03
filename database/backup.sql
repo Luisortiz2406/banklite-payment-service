@@ -89,7 +89,7 @@ CREATE TABLE public.saved_bills (
 --
 
 COPY public.billers (code, name, currency, account_id, account_number, updated_at) FROM stdin;
-fac-acueducto	Acueducto de Bogotá	COP	3a000000-0000-4000-8000-0000000000a1	90000000001	2026-10-01 13:00:00+00
+fac-acueducto	Aguas Demo Sabana	COP	3a000000-0000-4000-8000-0000000000a1	90000000001	2026-10-01 13:00:00+00
 \.
 
 
@@ -98,7 +98,7 @@ fac-acueducto	Acueducto de Bogotá	COP	3a000000-0000-4000-8000-0000000000a1	9000
 --
 
 COPY public.payment_requests (id, user_id, kind, biller_code, reference, period, due_date, source_account_id, amount, currency, description, idempotency_key, status, ledger_transaction_id, created_at, updated_at, topup_type) FROM stdin;
-3e000000-0000-4000-8000-000000000001	11111111-1111-4111-8111-111111111111	bill	fac-acueducto	12345678	2026-09	2026-10-15	3a000000-0000-4000-8000-000000000001	85000.00	COP	Acueducto de Bogotá · Ref. 12345678	7c000000-0000-4000-8000-000000000004	completed	7b000000-0000-4000-8000-000000000004	2026-10-04 15:00:00+00	2026-10-04 15:00:00+00	\N
+3e000000-0000-4000-8000-000000000001	11111111-1111-4111-8111-111111111111	bill	fac-acueducto	12345678	2026-09	2026-10-15	3a000000-0000-4000-8000-000000000001	85000.00	COP	Aguas Demo Sabana · Ref. 12345678	7c000000-0000-4000-8000-000000000004	completed	7b000000-0000-4000-8000-000000000004	2026-10-04 15:00:00+00	2026-10-04 15:00:00+00	\N
 \.
 
 
