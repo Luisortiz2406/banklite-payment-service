@@ -153,10 +153,10 @@ describeWithDb('PaymentsService (PostgreSQL)', () => {
       await requests.update(prepared.id, { description: 'Agua · Acueducto de Bogotá · Ref. 12345678' });
 
       const paid = await payments.confirm(prepared.id, ANA, DYNAMIC_KEY);
-      expect(paid.description).toBe('Agua · Aguas Demo Sabana · Ref. 12345678');
-      expect(paid.billerName).toBe('Aguas Demo Sabana');
+      expect(paid.description).toBe('Agua · Acueducto Montecielo · Ref. 12345678');
+      expect(paid.billerName).toBe('Acueducto Montecielo');
       expect(banking.pay).toHaveBeenCalledWith(
-        expect.objectContaining({ description: 'Agua · Aguas Demo Sabana · Ref. 12345678' }),
+        expect.objectContaining({ description: 'Agua · Acueducto Montecielo · Ref. 12345678' }),
       );
       // La base no se reescribe.
       expect((await requests.findOneBy({ id: prepared.id }))!.description).toContain('Acueducto de Bogotá');
