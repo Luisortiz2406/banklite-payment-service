@@ -7,9 +7,11 @@ import { Biller } from './payments/entities/biller.entity';
 import { PaymentRequest } from './payments/entities/payment-request.entity';
 import { SavedBill } from './payments/entities/saved-bill.entity';
 import { PaymentsModule } from './payments/payments.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
+    MetricsModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
